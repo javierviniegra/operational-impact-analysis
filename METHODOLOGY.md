@@ -1,8 +1,3 @@
----
-
-## ✅ `METHODOLOGY.md` (English, Markdown)
-
-```markdown
 # Methodology (Sales Totals vs Cost Subtotals)
 
 This document defines the accounting and analytical methodology used throughout this project.

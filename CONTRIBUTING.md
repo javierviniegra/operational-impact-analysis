@@ -1,8 +1,3 @@
----
-
-## ✅ `CONTRIBUTING.md` (English, Markdown)
-
-```markdown
 # Contributing Guidelines
 
 This repository is designed to be auditable and reproducible.
