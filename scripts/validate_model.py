@@ -1,5 +1,5 @@
 from src.extract.wansoft import load_orders, load_payments, load_cost_monthly
-from src.transform.sales_model import build_sales_with_payments, add_monthly_costs
+from src.transform.sales_model import build_sales_with_payments, add_monthly_costs, add_channel_info
 
 def main():
     df_orders = load_orders()
@@ -8,6 +8,7 @@ def main():
 
     df = build_sales_with_payments(df_orders, df_payments)
     df = add_monthly_costs(df, df_cost)
+    df = add_channel_info(df)
 
     print("=== Model Validation ===")
     print("Rows:", len(df))
@@ -34,6 +35,12 @@ def main():
     
     print("\nColumns tail:")
     print(df.columns.tolist()[-30:])
+
+    print("\nCanal distribution:")
+    print(df["canal"].value_counts())
+
+    print("\nSubcanal distribution:")
+    print(df["subcanal"].value_counts().head(10))
 
 if __name__ == "__main__":
     main()

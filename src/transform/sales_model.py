@@ -1,4 +1,5 @@
 import pandas as pd
+from src.transform.channel_mapping import classify_channel
 
 def build_sales_with_payments(df_orders: pd.DataFrame, df_payments: pd.DataFrame):
     # limpieza básica
@@ -55,4 +56,12 @@ def add_monthly_costs(df_sales, df_cost):
         on="month"
     )
 
+    return df
+
+def add_channel_info(df):
+    # MetodoDePago puede ser NaN (float) cuando no hay pagos (pre-2025)
+    channels = df["MetodoDePago"].map(classify_channel)
+    df["canal"] = channels.map(lambda x: x[0])
+    df["subcanal"] = channels.map(lambda x: x[1])
+    df["has_payment_info"] = df["MetodoDePago"].notna()
     return df
