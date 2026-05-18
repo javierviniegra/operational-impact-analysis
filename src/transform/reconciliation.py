@@ -1,4 +1,22 @@
 import pandas as pd
+from config.business_rules import SYSTEM_MIGRATIONS
+from config.branch_mapping import BRANCH_MAPPING
+
+def add_system_migration_flag(df):
+    df["source_flag"] = "OK"
+    df["note"] = ""
+
+    for rule in SYSTEM_MIGRATIONS:
+        mask = (
+            (df["branch"].isin(rule["branches"])) &
+            (df["month"] >= rule["start_month"]) &
+            (df["month"] <= rule["end_month"])
+        )
+
+        df.loc[mask, "source_flag"] = "SYSTEM_MIGRATION"
+        df.loc[mask, "note"] = rule["note"]
+
+    return df
 
 def _to_date(series):
     return pd.to_datetime(series, errors="coerce").dt.date
@@ -16,10 +34,11 @@ def reconcile_daily_orders_vs_cashclosing(df_orders_orderlevel: pd.DataFrame, df
     o["Total_x"] = pd.to_numeric(o["Total_x"], errors="coerce").fillna(0)
     o["Personas"] = pd.to_numeric(o["Personas"], errors="coerce").fillna(0)
 
-    orders_daily = (o.groupby("date", as_index=False)
+    orders_daily = (o.groupby(["date", "Sucursal_x"], as_index=False)
                      .agg(orders_ventas=("Total_x", "sum"),
                           orders_tickets=("Movimento", "nunique"),
                           orders_personas=("Personas", "sum")))
+    orders_daily.rename(columns={"Sucursal_x": "branch"}, inplace=True)
 
     # Cash closing daily normalization
     c["date"] = _to_date(c["fecha_corte"])
@@ -28,13 +47,23 @@ def reconcile_daily_orders_vs_cashclosing(df_orders_orderlevel: pd.DataFrame, df
     c["total_personas"] = pd.to_numeric(c.get("total_personas"), errors="coerce").fillna(0)
     c["no_ordenes"] = pd.to_numeric(c.get("no_ordenes"), errors="coerce").fillna(0)
 
-    cash_daily = (c.groupby("date", as_index=False)
+    cash_daily = (c.groupby(["date", "subsidiary_name"], as_index=False)
                    .agg(cash_ventas=("total_ventas", "sum"),
                         cash_tickets=("no_ordenes", "sum"),
                         cash_personas=("total_personas", "sum")))
+    cash_daily.rename(columns={"subsidiary_name": "branch"}, inplace=True)
+
+    orders_daily["branch"] = orders_daily["branch"].str.strip()
+    cash_daily["branch"] = cash_daily["branch"].str.strip()
+    
+    cash_daily["branch"] = cash_daily["branch"].replace(BRANCH_MAPPING)
 
     # Merge + deltas
-    out = orders_daily.merge(cash_daily, on="date", how="outer").fillna(0)
+    out = orders_daily.merge(
+        cash_daily,
+        on=["date", "branch"],
+        how="outer"
+    ).fillna(0)
 
     out["delta_ventas"] = out["orders_ventas"] - out["cash_ventas"]
     out["delta_ventas_pct"] = out["delta_ventas"] / out["cash_ventas"].replace({0: pd.NA})
@@ -55,7 +84,7 @@ def reconcile_monthly_orders_vs_cashclosing(df_daily_recon: pd.DataFrame) -> pd.
     d["date"] = pd.to_datetime(d["date"], errors="coerce")
     d["month"] = d["date"].dt.to_period("M").astype(str)
 
-    m = (d.groupby("month", as_index=False)
+    m = (d.groupby(["month", "branch"], as_index=False)
           .agg(orders_ventas=("orders_ventas", "sum"),
                cash_ventas=("cash_ventas", "sum"),
                delta_ventas=("delta_ventas", "sum"),
@@ -68,6 +97,8 @@ def reconcile_monthly_orders_vs_cashclosing(df_daily_recon: pd.DataFrame) -> pd.
     m["status"] = "OK"
     m.loc[m["cash_ventas"].gt(0) & (m["delta_ventas_pct"].abs() > 0.005), "status"] = "REVIEW"
     m.loc[m["cash_ventas"].eq(0) & m["orders_ventas"].gt(0), "status"] = "REVIEW"
+    m = add_system_migration_flag(m)
+
     return m
 
 def operational_kpis_monthly_from_cashclosing(df_cash: pd.DataFrame) -> pd.DataFrame:
