@@ -1,5 +1,6 @@
 from src.extract.wansoft import load_orders, load_payments, load_cost_monthly
 from src.transform.sales_model import build_sales_with_payments, add_monthly_costs, add_channel_info
+from src.transform.order_level import build_order_level, apply_channel_fallback
 
 def main():
     df_orders = load_orders()
@@ -40,6 +41,25 @@ def main():
     print(df["canal"].value_counts())
 
     print("\nSubcanal distribution:")
+    print(df["subcanal"].value_counts().head(10))
+    
+    # How many payments per order?
+    p = df.groupby("Movimento")["Movimiento_Id"].nunique()
+    print("Payments per order (top):")
+    print(p.value_counts().head(10))
+    print("Orders with >1 payment:", (p > 1).sum())
+
+
+    df = build_order_level(df)
+    df = apply_channel_fallback(df)
+
+    print("\nOrder-level rows:", len(df))
+    print("Unique orders:", df["Movimento"].nunique())
+
+    print("\nChannel distribution (order-level):")
+    print(df["canal"].value_counts().head(10))
+
+    print("\nSubchannel distribution (order-level):")
     print(df["subcanal"].value_counts().head(10))
 
 if __name__ == "__main__":

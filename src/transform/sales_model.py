@@ -1,5 +1,6 @@
 import pandas as pd
 from src.transform.channel_mapping import classify_channel
+from src.transform.order_level import build_order_level, apply_channel_fallback
 
 def build_sales_with_payments(df_orders: pd.DataFrame, df_payments: pd.DataFrame):
     # limpieza básica
@@ -17,7 +18,6 @@ def build_sales_with_payments(df_orders: pd.DataFrame, df_payments: pd.DataFrame
     return df
 
 def add_monthly_costs(df_sales, df_cost):
-    import pandas as pd
 
     # identificar columna de fecha en ventas
     date_col = None
