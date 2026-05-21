@@ -1,46 +1,183 @@
 # Operational Impact Analysis
 
-A reproducible analytics pipeline and executive reporting package for restaurant operations.  
-It integrates Wansoft sales/orders data, monthly costs, and operational cash-closing KPIs to produce:
+A reproducible analytics framework for restaurant operations.
 
-- A **DG-ready HTML presentation** (interactive, deck-style)
-- A **Word executive report** (editable, Spanish narrative + evidence charts)
-- A full **reconciliation layer** (Orders vs CashClosing) with business flags
-- Advanced diagnostics: **time heatmaps**, **median-based quadrant scatters**, **waiter performance analysis**
+This project integrates Wansoft data sources to generate:
 
----
-
-## What this project solves
-
-Restaurant performance issues often appear as “Sales down / Ticket up”.  
-This framework helps you isolate whether changes are driven by:
-
-- Demand (tickets, customers/personas, tables)
-- Customer behavior (ticket and check composition)
-- Channel mix (dine-in vs delivery vs takeaway)
-- Operational execution (voids/cancellations/discounts/courtesies)
-- Staff performance (waiters: volume vs conversion)
-- Data quality and system transitions (migration flags + branch mapping)
+- Executive HTML dashboards (DG level)
+- Executive Word reports (narrative + charts)
+- Data reconciliation (Orders vs CashClosing)
+- Operational diagnostics (quad analysis, heatmaps, waiter performance)
 
 ---
 
-## Data sources
+## Purpose
 
-This project uses three core sources:
+Restaurant performance issues often appear as:
 
-1. **Wansoft Orders / Sales**  
-   Used to compute Sales totals, tickets, people/personas, tables, service-time distributions, and waiter metrics.
+- Sales decreasing
+- Ticket increasing
 
-2. **Wansoft `costeomensual` (monthly cumulative costs)**  
-   Monthly costs are cumulative; the **final record of the month** represents month-close values.
+This framework identifies whether the root cause is:
 
-3. **Wansoft `getglobalcashclosing` (cash closing KPIs)**  
-   Operational drivers used as truth for:
-   - `cortesias_en_platillos`
-   - `cancelaciones_en_platillos`
-   - `anulaciones_en_platillos`
-   - `descuentos_en_platillos`
+- Demand (tickets, customers)
+- Consumption (ticket, check)
+- Channel mix (delivery vs salon)
+- Operational issues (voids, discounts, cancellations)
+- Service execution (waiters)
+- Data inconsistencies
 
 ---
 
-## Repository structure
+## Data Sources
+
+### Orders / Sales (Wansoft)
+
+Used for:
+- Sales
+- Tickets
+- Customers
+- Tables
+- Waiter performance
+- Time analysis
+
+---
+
+### Cost Data (costeomensual)
+
+- Monthly cost data is cumulative
+- The final record of each month represents real cost
+
+---
+
+### Operational KPIs (getglobalcashclosing)
+
+Provides:
+
+- anulaciones
+- cancelaciones
+- cortesias
+- descuentos
+
+---
+
+## Project Structure
+
+OperationalImpactAnalysis/
+
+- src/
+  - extract/
+  - transform/
+- scripts/
+  - validate_all.py
+  - generate_dg_presentation_pro_es.py
+  - generate_executive_word_es.py
+- config/
+- docs/
+- output/ (ignored)
+
+---
+
+## Setup
+
+### Install dependencies
+
+pip install -r requirements.txt
+
+---
+
+### Configure environment (.env)
+
+Include:
+
+- database credentials
+- analysis scope
+- branch identifiers
+
+---
+
+## Execution Flow
+
+### 1. Validate pipeline
+
+python -m scripts.validate_all
+
+---
+
+### 2. Generate HTML presentation
+
+python -m scripts.generate_dg_presentation_pro_es
+
+---
+
+### 3. Generate Word report
+
+python -m scripts.generate_executive_word_es
+
+---
+
+## Key Concepts
+
+### Order-Level Model
+
+- 1 row = 1 order
+- No duplication from payments
+
+---
+
+### Reconciliation
+
+- Orders vs CashClosing comparison
+- Detects inconsistencies and system issues
+
+---
+
+### Quadrant Analysis
+
+Uses median-based segmentation (robust to outliers)
+
+Used for:
+
+- Volume vs sales
+- Ticket vs demand
+- Waiter performance
+
+---
+
+### Heatmaps
+
+Used to analyze:
+
+- Hourly demand
+- Weekly patterns
+- Operational timing
+
+---
+
+## Outputs
+
+### HTML Dashboard
+
+- Trends
+- Correlations
+- Quadrants
+- Heatmaps
+- Operational drivers
+
+---
+
+### Word Report
+
+- Narrative analysis
+- Graphs
+- Decisions and recommendations
+
+---
+
+## Principle
+
+This project is designed for:
+
+- Executive decision-making
+- Operational diagnosis
+- Reproducibility across branches
