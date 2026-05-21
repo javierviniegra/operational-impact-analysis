@@ -1,129 +1,148 @@
-# Methodology (Sales Totals vs Cost Subtotals)
 
-This document defines the accounting and analytical methodology used throughout this project.
-Its purpose is to ensure data consistency, comparability, and auditability across all outputs.
+# Methodology
 
----
-
-## 1. Core Principle
-
-### 1.1 Sales are reported as TOTALS (VAT included)
-Sales values reflect POS totals and include VAT, matching operational and customer-facing reality.
-
-### 1.2 Costs are reported as SUBTOTALS (VAT excluded)
-Costs exclude VAT to avoid fiscal noise and prevent inflated COGS.
-
-This prevents “contamination” when comparing operational cost structures and margin drivers.
+This document explains how raw restaurant data is transformed into **executive-level insights**.
 
 ---
 
-## 2. KPI Percentage Convention
+## 1. Data sources
 
-All cost-related percentages must use the following convention:
-
-- **Numerator:** Cost in SUBTOTAL (VAT excluded)
-- **Denominator:** Sales in TOTAL (VAT included)
-
-Example:
-- Waste Cost % = Waste Cost (subtotal) / Sales (total)
-
----
-
-## 3. Source-of-Truth Hierarchy
-
-### 3.1 Sales (Source of Truth)
-Primary:
-- POS daily cash closing totals (e.g., global cash closing)
-
-Secondary (validation / drilldown):
-- Daily order-level tables
-- Line-item detail tables
-
-### 3.2 Purchases (Source of Truth)
-Purchases are derived only from invoice-backed inventory entries:
-
-- Filter: `TipoEntrada = "Factura"`
-- This ensures purchases represent real, fiscally supported acquisition costs.
-
-### 3.3 Production / Yields (Tablajería)
-Yield and waste metrics are derived from daily meat processing records, compared against ideal benchmarks.
-Variance vs ideal is treated as an operational driver of margin degradation.
-
-### 3.4 Quality (Zenput)
-Quality and execution are measured through:
-- audit scores over time
-- task completion and lateness patterns
+### Orders / Sales (Wansoft)
+Used for:
+- Sales totals
+- Tickets
+- Customers (personas)
+- Tables (mesas)
+- Waiter performance
 
 ---
 
-## 4. Reconciliation & Data Quality Controls
-
-### 4.1 Sales reconciliation
-- Reconcile daily totals (cash closing) vs sum of line-item totals.
-- Investigate and document any deltas.
-
-### 4.2 Cost completeness
-- Validate purchase coverage by date and branch.
-- Ensure invoice-based inputs are not mixed with transfers or adjustments unless explicitly modeled.
-
-### 4.3 Key integrity checks
-- Branch key stability across Wansoft and Zenput.
-- Date granularity alignment (day/week/month).
-- Product naming/coding normalization where needed (mapping tables).
+### Costs (`costeomensual`)
+- Stores cumulative monthly values
+- The **last record of each month represents the actual cost**
 
 ---
 
-## 5. Time Windows and Comparisons
+### Operational KPIs (`getglobalcashclosing`)
+Used as source of truth for:
 
-The calendar dimension standardizes:
-- day
-- week-of-year
-- month
-- year
-- day-of-week
-- hour (when available)
-
-Comparisons supported:
-- WoW (week-over-week)
-- MoM (month-over-month)
-- YoY (year-over-year)
-- period vs previous period
+- anulaciones_en_platillos
+- cancelaciones_en_platillos
+- cortesias_en_platillos
+- descuentos_en_platillos
 
 ---
 
-## 6. Events (Context Layer)
+## 2. Canonical data model
 
-Events provide context to interpret inflection points:
-- internal changes (leadership changes, policy shifts)
-- operational disruptions
-- promotions/campaigns
-- external shocks
-
-Events can be sourced from:
-- documented internal communication (email/meeting references), or
-- a controlled manual event file committed to the repo.
+- 1 row = 1 order
+- No duplication from payments
+- Stable aggregation base
 
 ---
 
-## 7. Alignment With Executive KPI Cards
+## 3. KPI construction
 
-Executive KPI “cards” are implemented in Python to match Power BI definitions.
-Each KPI must be registered in `METRICS.md` with:
-- definition
-- base table(s)
-- filters
-- VAT basis (total vs subtotal)
-- Python function reference
-- validation notes
+### Sales
+
+- Ventas = sum(Total)
+- Tickets = unique orders
+- Personas = sum(Personas)
+- Ticket = Ventas / Tickets
+- Cheque = Ventas / Personas
 
 ---
 
-## 8. Output Standards
+### Costs
 
-All outputs must:
-- clearly state methodology (Totals vs Subtotals)
-- include the time window used
-- be reproducible from raw sources
-- be exportable to `output/` (datasets and figures)
+- CostoTotal = last monthly cumulative from costeomensual
+- COGS% = CostoTotal / Ventas
+- Margen = Ventas - CostoTotal
+- Margen% = Margen / Ventas
 
-No output is considered “final” unless reconciliation checks pass and the KPI is registered.
+---
+
+## 4. Reconciliation layer
+
+Compares:
+- Orders vs CashClosing
+
+Purpose:
+- Detect inconsistencies
+- Detect system issues
+- Flag unreliable months
+
+---
+
+### Key flags
+
+- `SYSTEM_MIGRATION`
+- branch name normalization
+
+---
+
+## 5. Quadrant analysis (core methodology)
+
+Quadrants use **median cuts** (not mean):
+
+- Vertical line = median(X)
+- Horizontal line = median(Y)
+
+Why:
+
+- Robust against outliers
+- Stable over time
+- Comparable across periods
+
+---
+
+## 6. Heatmaps
+
+Dimensions:
+
+- Day of week
+- Hour of day
+
+Used for:
+
+- Demand pattern detection
+- Staffing optimization
+- Operational timing issues
+
+---
+
+## 7. Waiter analysis
+
+Each waiter is evaluated on:
+
+- Customers attended
+- Sales generated
+- Ticket average
+- Tables managed
+
+Purpose:
+
+- Identify execution differences
+- Detect training opportunities
+- Link service quality to revenue
+
+---
+
+## 8. Executive interpretation layer
+
+The analysis focuses on:
+
+- Volume vs ticket behavior
+- Demand shifts
+- Operational signals
+- Staff performance
+
+---
+
+## 9. Outputs
+
+### HTML dashboard (DG)
+Interactive, exploratory, fast diagnosis
+
+### Word report
+Narrative + charts + recommendations

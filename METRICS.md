@@ -1,100 +1,369 @@
-# KPI Registry (Power BI → Python Contract)
+# Metrics Reference
 
-This file is the single source of truth for KPI definitions.
-Each KPI must match Power BI business logic and be reproducible in Python.
+This document defines all KPIs used in the **Operational Impact Analysis** pipeline.
 
----
-
-## How to Use This Registry
-
-For every KPI:
-1. Copy the Power BI definition (DAX) and list source tables.
-2. Specify filters and time logic.
-3. Specify VAT basis (Totals vs Subtotals).
-4. Implement the Python equivalent and reference the function.
-5. Validate against Power BI outputs for at least one known period.
+Each metric is categorized by purpose:
+- Commercial performance
+- Cost and profitability
+- Channel behavior
+- Operational signals
+- Waiter performance
+- Data quality and reconciliation
 
 ---
 
-## Standard Fields (Required)
+# 1. Commercial Metrics
 
-- **KPI Name**
-- **Business Purpose**
-- **Power BI Measure Name**
-- **Power BI DAX**
-- **Source Tables**
-- **Join Keys**
-- **Filters**
-- **Time Window Logic**
-- **VAT Basis**
-  - Sales: Totals (VAT included)
-  - Costs: Subtotals (VAT excluded)
-- **Python Function**
-- **Validation**
-  - Method used and sample period(s)
-- **Notes / Edge Cases**
+## Ventas (Revenue)
+**Definition:** Total revenue generated in the period  
+**Formula:**
+Ventas = sum(Total)
+
+**Source:**
+Orders / Sales table (Wansoft)
 
 ---
 
-## KPI List (Initial Executive Cards)
-
-> These KPIs are aligned with the executive “card” fields referenced in the Power BI executive reporting. [1](https://app.powerbi.com/groups/7fb5d46e-0769-4f9c-8e10-990afff7b341/reports/7a109fc3-96ef-4d2a-a7a6-33042044db68?pbi_source=Substrate)
-
-### 1) Sales (Total)
-- **KPI Name:** Sales (Total)
-- **VAT Basis:** Totals
-- **Status:** Pending definition
-
-### 2) Raw Material Purchases
-- **KPI Name:** Raw Material Purchases
-- **VAT Basis:** Subtotals
-- **Status:** Pending definition
-
-### 3) Total Cost
-- **KPI Name:** Total Cost
-- **VAT Basis:** Subtotals
-- **Status:** Pending definition
-
-### 4) Theoretical Cost
-- **KPI Name:** Theoretical Cost
-- **VAT Basis:** Subtotals
-- **Status:** Pending definition
-
-### 5) Cost of Cancellations
-- **KPI Name:** Cost of Cancellations
-- **VAT Basis:** Subtotals
-- **Status:** Pending definition
-
-### 6) Cost of Complimentary Items (Comp)
-- **KPI Name:** Cost of Complimentary Items
-- **VAT Basis:** Subtotals
-- **Status:** Pending definition
-
-### 7) Waste Cost (Mermas)
-- **KPI Name:** Waste Cost
-- **VAT Basis:** Subtotals
-- **Status:** Pending definition
-
-### 8) Operating Margin
-- **KPI Name:** Operating Margin
-- **VAT Basis:** Mixed
-  - Sales: Totals
-  - Costs/Expenses: Subtotals
-- **Status:** Pending definition
-
-### 9) Selling Expense
-- **KPI Name:** Selling Expense
-- **VAT Basis:** Subtotals
-- **Status:** Pending definition
+## Tickets (Orders)
+**Definition:** Number of unique orders  
+**Formula:**
+Tickets = nunique(Orden or Movimento)
 
 ---
 
-## KPI Definition Template (Copy/Paste)
+## Personas (Customers / Covers)
+**Definition:** Total number of customers served  
+**Formula:**
+Personas = sum(Personas)
 
-### KPI: <KPI Name>
+---
 
-- **Business Purpose:**
-- **Power BI Measure Name:**
-- **Power BI DAX:**
-  ```DAX
-  -- paste DAX here
+## Ticket Promedio (Average Ticket)
+**Definition:** Revenue per order  
+**Formula:**
+Ticket_Promedio = Ventas / Tickets
+
+**Interpretation:**
+- Higher value → better upselling
+- Lower value → potential dilution of consumption
+
+---
+
+## Cheque Promedio (Average Check)
+**Definition:** Revenue per customer  
+**Formula:**
+Cheque_Promedio = Ventas / Personas
+
+**Interpretation:**
+- Reflects consumption per person
+- More stable than Ticket in group scenarios
+
+---
+
+# 2. Demand & Capacity Metrics
+
+## Mesas (Tables)
+**Definition:** Number of unique tables used  
+**Formula:**
+Mesas = nunique(Mesa)
+
+---
+
+## Clientes (alias Personas)
+Same as Personas (used in operational views)
+
+---
+
+## Personas por Mesa
+**Definition:** Average number of customers per table  
+**Formula:**
+Personas_por_Mesa = Personas / Mesas
+
+**Interpretation:**
+- High → group dining
+- Low → fragmented demand or smaller parties
+
+---
+
+## Tickets por Mesa
+**Definition:** Orders per table  
+**Formula:**
+Tickets_por_Mesa = Tickets / Mesas
+
+---
+
+# 3. Cost & Profitability Metrics
+
+## CostoTotal
+**Definition:** Monthly cost of goods sold  
+**Source:** `costeomensual`
+
+**Rule:**
+The **last cumulative value per month** is used.
+
+---
+
+## COGS %
+**Definition:** Cost ratio  
+**Formula:**
+COGS_% = CostoTotal / Ventas
+
+**Interpretation:**
+- >35% typically signals margin pressure
+- >40% requires immediate investigation
+
+---
+
+## Margen (Margin)
+**Definition:** Gross profit  
+**Formula:**
+Margen = Ventas - CostoTotal
+
+---
+
+## Margen %
+**Definition:** Profitability ratio  
+**Formula:**
+Margen_% = Margen / Ventas
+
+---
+
+# 4. Channel Metrics
+
+## Ventas by Channel
+
+- Ventas_Salon
+- Ventas_Delivery
+- Ventas_Llevar
+- Ventas_Otros
+- Ventas_Unknown
+
+---
+
+## Channel Share
+
+**Formula:**
+%_Channel = Ventas_Channel / Ventas
+
+Examples:
+- %_Salon
+- %_Delivery
+- %_Llevar
+
+---
+
+## Interpretation
+
+- Increase in Delivery → may inflate Ticket but reduce volume
+- Decline in Salon → may indicate traffic issue
+
+---
+
+# 5. Operational Metrics (CashClosing)
+
+Source: `getglobalcashclosing`
+
+---
+
+## Anulaciones
+**Definition:** Voided items  
+**Field:** anulaciones_en_platillos
+
+---
+
+## Cancelaciones
+**Definition:** Cancelled items  
+**Field:** cancelaciones_en_platillos
+
+---
+
+## Cortesías
+**Definition:** Complimentary items  
+**Field:** cortesias_en_platillos
+
+---
+
+## Descuentos
+**Definition:** Discounted items  
+**Field:** descuentos_en_platillos
+
+---
+
+## Interpretation
+
+- High anulaciones → process or fraud issues
+- High cancelaciones → kitchen/service coordination issues
+- High descuentos → pricing or control issues
+- High cortesías → experience/service recovery mechanism
+
+---
+
+# 6. Waiter Metrics (Operational Execution)
+
+Derived from Orders
+
+---
+
+## Ventas por Mesero
+Total revenue generated by waiter
+
+---
+
+## Tickets por Mesero
+Orders handled by waiter
+
+---
+
+## Personas por Mesero
+Customers served
+
+---
+
+## Mesas por Mesero
+Tables attended
+
+---
+
+## Ticket Promedio por Mesero
+**Formula:**
+ventas / tickets
+
+---
+
+## Personas por Mesa (Mesero)
+**Formula:**
+personas / mesas
+
+---
+
+## Interpretation
+
+- High personas + low ventas → poor upselling
+- High ventas + low personas → strong selling skill
+- High mesas + low ventas → inefficiency or overload
+
+---
+
+# 7. Time-Based Metrics
+
+Derived from HoraApertura
+
+---
+
+## Ventas por Hora
+Sales aggregated by hour
+
+---
+
+## Tickets por Hora
+Orders aggregated by hour
+
+---
+
+## Personas por Hora
+Customers aggregated by hour
+
+---
+
+## Dimensions:
+- Hour of day
+- Day of week
+
+---
+
+## Purpose
+
+- Identify demand peaks
+- Optimize staffing
+- Detect weak time slots
+
+---
+
+# 8. Reconciliation & Data Quality Metrics
+
+## delta_ventas_pct
+**Definition:** Difference between Orders and CashClosing
+
+**Formula:**
+delta = (Ventas_Orders - Ventas_CashClosing) / Ventas_CashClosing
+
+---
+
+## status
+- OK
+- REVIEW
+
+---
+
+## source_flag
+- OK
+- SYSTEM_MIGRATION
+
+---
+
+## Interpretation
+
+- REVIEW + OK → real business issue
+- SYSTEM_MIGRATION → ignore (data break)
+
+---
+
+# 9. Derived Analytical Metrics
+
+## ventas_mom_pct
+Month-over-month sales change
+
+---
+
+## cogs_mom_pp
+COGS% variation in percentage points
+
+---
+
+## margen_mom_pp
+Margin variation in percentage points
+
+---
+
+## break_score
+Composite anomaly score based on:
+- Sales change
+- Cost variation
+- Margin variation
+- Reconciliation delta
+
+---
+
+## is_breakpoint
+Top anomalies (90th percentile of break_score)
+
+---
+
+# 10. Executive Interpretation Layer
+
+The analysis focuses on identifying:
+
+- Demand shifts (tickets, personas, mesas)
+- Consumption changes (ticket, cheque)
+- Operational inefficiencies (cash closing signals)
+- Staff execution differences (meseros)
+- Channel impact (delivery vs salón)
+
+---
+
+## Key insight logic
+
+Example:
+
+IF:
+- Ventas ↓
+- Tickets ↓
+- Personas ↓
+- Ticket ↑
+
+THEN:
+→ Demand contraction, not pricing issue
+
+---
+
+# End of document
